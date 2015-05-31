@@ -55,17 +55,14 @@ void (* demalloc_memalign_prehook) (size_t alignment, size_t *size, const void *
 void (* demalloc_posix_memalign_prehook) (size_t alignment, size_t *size, const void *caller) = NULL;
 void (* demalloc_free_prehook) (void **ptr, const void *caller) = NULL;
 
-void * (* demalloc_malloc_posthook) (size_t size, const void *caller) = NULL;
-void * (* demalloc_realloc_posthook) (void *ptr, size_t size, const void *caller) = NULL;
-void * (* demalloc_memalign_posthook) (size_t alignment, size_t size, const void *caller) = NULL;
-void   (* demalloc_free_posthook) (void *ptr, const void *caller) = NULL;
+void (* demalloc_malloc_posthook) (void **ptr, size_t size, const void *caller) = NULL;
+void (* demalloc_calloc_posthook) (void **ptr, size_t size, const void *caller) = NULL;
+void (* demalloc_realloc_posthook) (void **ptr, size_t size, const void *caller) = NULL;
+void (* demalloc_memalign_posthook) (void **ptr, size_t alignment, size_t size, const void *caller) = NULL;
+void (* demalloc_posix_memalign_posthook) (void **ptr, size_t alignment, size_t size, const void *caller) = NULL;
+void (* demalloc_free_posthook) (void **ptr, const void *caller) = NULL;
 
 #define powerof2(val) ((((val) - 1) & (val)) == 0)
-
-static void report_allocator_hook(const char * allocator_name, void * memptr)
-{
-    printf("%s hook, returned memptr=%p\n", allocator_name, memptr);
-}
 
 void *malloc (size_t __size)
 {
@@ -74,7 +71,9 @@ void *malloc (size_t __size)
 
     void * ptr = __libc_malloc(__size);
 
-    report_allocator_hook("malloc", ptr);
+    if (demalloc_malloc_posthook)
+        demalloc_malloc_posthook(&ptr, __size, __builtin_return_address(0));
+
     return ptr;
 }
 
@@ -84,7 +83,10 @@ void *calloc (size_t __nmemb, size_t __size)
         demalloc_calloc_prehook(&__size, __builtin_return_address(0));
 
     void * ptr = __libc_calloc(__nmemb, __size);
-    report_allocator_hook("calloc", ptr);
+
+    if (demalloc_calloc_posthook)
+        demalloc_calloc_posthook(&ptr, __size, __builtin_return_address(0));
+
     return ptr;
 }
 
@@ -94,7 +96,10 @@ void *realloc (void *__ptr, size_t __size)
         demalloc_realloc_prehook(&__ptr, &__size, __builtin_return_address(0));
 
     void * ptr = __libc_realloc(__ptr, __size);
-    report_allocator_hook("realloc", ptr);
+
+    if (demalloc_realloc_posthook)
+        demalloc_realloc_posthook(&ptr, __size, __builtin_return_address(0));
+
     return ptr;
 
 }
@@ -105,7 +110,10 @@ void *memalign (size_t __alignment, size_t __size)
         demalloc_memalign_prehook(__alignment, &__size, __builtin_return_address(0));
 
     void * ptr = __libc_memalign (__alignment, __size);
-    report_allocator_hook("memalign", ptr);
+
+    if (demalloc_memalign_posthook)
+        demalloc_memalign_posthook(&ptr, __alignment, __size, __builtin_return_address(0));
+
     return ptr;
 }
 
@@ -120,10 +128,12 @@ int posix_memalign (void **__memptr, size_t __alignment, size_t __size)
         return EINVAL;
 
     *__memptr = __libc_memalign (__alignment, __size);
-    report_allocator_hook("posix_memalign", *__memptr);
 
     if(*__memptr == NULL)
         return ENOMEM;
+
+    if (demalloc_posix_memalign_posthook)
+        demalloc_posix_memalign_posthook(__memptr, __alignment, __size, __builtin_return_address(0));
 
     return 0;
 }
@@ -134,7 +144,9 @@ void free (void *__ptr)
         demalloc_free_prehook(&__ptr, __builtin_return_address(0));
 
     __libc_free(__ptr);
-    report_allocator_hook("free", __ptr);
+
+    if (demalloc_free_posthook)
+        demalloc_free_posthook(&__ptr, __builtin_return_address(0));
 }
 
 

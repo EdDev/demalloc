@@ -38,15 +38,35 @@
 extern "C" {
 #endif
 
+/*
+ * Allocators and free replacer.
+ */
 extern void *malloc (size_t __size);
-
 extern void *calloc (size_t __nmemb, size_t __size);
-
 extern void *realloc (void *__ptr, size_t __size);
-
 extern void *memalign (size_t __alignment, size_t __size);
-
+extern int posix_memalign (void **__memptr, size_t __alignment, size_t __size);
 extern void free (void *__ptr);
+
+/*
+ * Pre hook points
+ */
+extern void (* demalloc_malloc_prehook) (size_t *size, const void *caller);
+extern void (* demalloc_calloc_prehook) (size_t *size, const void *caller);
+extern void (* demalloc_realloc_prehook) (void **ptr, size_t *size, const void *caller);
+extern void (* demalloc_memalign_prehook) (size_t alignment, size_t *size, const void *caller);
+extern void (* demalloc_posix_memalign_prehook) (size_t alignment, size_t *size, const void *caller);
+extern void (* demalloc_free_prehook) (void **ptr, const void *caller);
+
+/*
+ * Post hook points
+ */
+extern void (* demalloc_malloc_posthook) (void **ptr, size_t size, const void *caller);
+extern void (* demalloc_calloc_posthook) (void **ptr, size_t size, const void *caller);
+extern void (* demalloc_realloc_posthook) (void **ptr, size_t size, const void *caller);
+extern void (* demalloc_memalign_posthook) (void **ptr, size_t alignment, size_t size, const void *caller);
+extern void (* demalloc_posix_memalign_posthook) (void **ptr, size_t alignment, size_t size, const void *caller);
+extern void (* demalloc_free_posthook) (void **ptr, const void *caller);
 
 #ifdef __cplusplus
 }
